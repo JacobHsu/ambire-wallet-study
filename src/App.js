@@ -8,6 +8,8 @@ import {
   Prompt
 } from 'react-router-dom'
 
+import useNetwork from './hooks/network'
+
 function AppHello() {
   return (
     <div className="App">
@@ -30,6 +32,9 @@ function AppHello() {
 }
 
 function AppInner () {
+  const { network, setNetwork, allNetworks } = useNetwork()
+  console.log('network:', network, allNetworks)
+  
   return (<>
     <Prompt
       message={(location, action) => {
