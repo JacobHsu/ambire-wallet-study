@@ -1,4 +1,4 @@
-import logo from './logo.svg';
+// import logo from './logo.svg';
 // import './App.css';
 import './App.scss'
 import {
@@ -8,14 +8,14 @@ import {
   Redirect,
   Prompt
 } from 'react-router-dom'
-
+import ToastProvider from './components/ToastProvider/ToastProvider'
 import useNetwork from './hooks/network'
 
 function AppHello() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
+        {/* <img src={logo} className="App-logo" alt="logo" /> */}
         <p>
           Edit <code>src/App.js</code> and save to reload.
         </p>
@@ -57,7 +57,9 @@ function AppInner () {
 function App() {
   return (
     <Router>
-       <AppInner/>
+      <ToastProvider>
+        <AppInner/>
+      </ToastProvider>
     </Router>
   )
 }
