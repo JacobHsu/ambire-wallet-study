@@ -10,12 +10,15 @@ import {
 } from 'react-router-dom'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import ToastProvider from './components/ToastProvider/ToastProvider'
+import SignMessage from './components/SignMessage/SignMessage'
 import useAccounts from './hooks/accounts'
 import useNetwork from './hooks/network'
 import useWalletConnect from './hooks/walletconnect'
 import useGnosisSafe from './hooks/useGnosisSafe'
 import { useToasts } from './hooks/toasts'
 import { useOneTimeQueryParam } from './hooks/oneTimeQueryParam'
+
+const relayerURL = process.env.hasOwnProperty('REACT_APP_RELAYER_URL') ? process.env.REACT_APP_RELAYER_URL : ' https://relayer.ambire.com'
 
 function AppHello() {
   return (
@@ -109,12 +112,29 @@ function AppInner () {
     return true
   }
 
+  const [cacheBreak, setCacheBreak] = useState(() => Date.now())
+  useEffect(() => {
+    if ((Date.now() - cacheBreak) > 5000) setCacheBreak(Date.now())
+    const intvl = setTimeout(() => setCacheBreak(Date.now()), 30000)
+    return () => clearTimeout(intvl)
+  }, [cacheBreak])
+
   return (<>
     <Prompt
       message={(location, action) => {
         if (action === 'POP') return onPopHistory()
         return true
     }}/>
+
+    {!!everythingToSign.length && (<SignMessage
+      selectedAcc={selectedAcc}
+      account={accounts.find(x => x.id === selectedAcc)}
+      toSign={everythingToSign[0]}
+      totalRequests={everythingToSign.length}
+      connections={connections}
+      relayerURL={relayerURL}
+      resolve={outcome => resolveMany([everythingToSign[0].id], outcome)}
+    ></SignMessage>)}
     
     <Switch>
       <Route path="/wallet">
