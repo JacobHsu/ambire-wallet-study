@@ -8,6 +8,7 @@ import {
   Redirect,
   Prompt
 } from 'react-router-dom'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import ToastProvider from './components/ToastProvider/ToastProvider'
 import useAccounts from './hooks/accounts'
 import useNetwork from './hooks/network'
@@ -57,11 +58,61 @@ function AppInner () {
 	  selectedAccount: selectedAcc,
 	  network: network
 	}, [selectedAcc, network])
+
+  // Internal requests: eg from the Transfer page, Security page, etc. - requests originating in the wallet UI itself
+  // unlike WalletConnect or SafeSDK requests, those do not need to be persisted
+  const [internalRequests, setInternalRequests] = useState([])
+
+  // Merge all requests
+  const requests = useMemo(
+    () => [...internalRequests, ...wcRequests, ...gnosisRequests]
+      .filter(({ account }) => accounts.find(({ id }) => id === account)),
+    [wcRequests, internalRequests, gnosisRequests, accounts]
+  )
+
+  const resolveMany = (ids, resolution) => {
+    wcResolveMany(ids, resolution)
+    gnosisResolveMany(ids, resolution)
+    setInternalRequests(reqs => reqs.filter(x => !ids.includes(x.id)))
+  }
+
+  // Show the send transaction full-screen modal if we have a new txn
+  const eligibleRequests = useMemo(() => requests
+  .filter(({ type, chainId, account }) =>
+    type === 'eth_sendTransaction'
+    && chainId === network.chainId
+    && account === selectedAcc
+  ), [requests, network.chainId, selectedAcc])
+  const [sendTxnState, setSendTxnState] = useState(() => ({ showing: !!eligibleRequests.length }))
+  useEffect(
+    () => setSendTxnState({ showing: !!eligibleRequests.length }),
+    [eligibleRequests.length]
+  )
   
+  // Network shouldn't matter here
+  const everythingToSign = useMemo(() => requests
+  .filter(({ type, account }) => (type === 'personal_sign' || type === 'eth_sign')
+    && account === selectedAcc
+  ), [requests, selectedAcc])
+
+  // When the user presses back, we first hide the SendTransactions dialog (keeping the queue)
+  // Then, signature requests will need to be dismissed one by one, starting with the oldest
+  const onPopHistory = () => {
+    if (sendTxnState.showing) {
+      setSendTxnState({ showing: false })
+      return false
+    }
+    if (everythingToSign.length) {
+      resolveMany([everythingToSign[0].id], { message: 'Ambire user rejected the signature request' })
+      return false
+    }
+    return true
+  }
+
   return (<>
     <Prompt
       message={(location, action) => {
-        if (action === 'POP') return alert('onPopHistory')
+        if (action === 'POP') return onPopHistory()
         return true
     }}/>
     
