@@ -9,7 +9,11 @@ import {
   Prompt
 } from 'react-router-dom'
 import ToastProvider from './components/ToastProvider/ToastProvider'
+import useAccounts from './hooks/accounts'
 import useNetwork from './hooks/network'
+import useWalletConnect from './hooks/walletconnect'
+import { useToasts } from './hooks/toasts'
+import { useOneTimeQueryParam } from './hooks/oneTimeQueryParam'
 
 function AppHello() {
   return (
@@ -33,8 +37,20 @@ function AppHello() {
 }
 
 function AppInner () {
+  // basic stuff: currently selected account, all accounts, currently selected network
+  const { accounts, selectedAcc, onSelectAcc, onAddAccount, onRemoveAccount } = useAccounts()
   const { network, setNetwork, allNetworks } = useNetwork()
-  console.log('network:', network, allNetworks)
+  const { addToast } = useToasts()
+  const wcUri = useOneTimeQueryParam('uri')
+
+  // Signing requests: transactions/signed msgs: all requests are pushed into .requests
+  const { connections, connect, disconnect, requests: wcRequests, resolveMany: wcResolveMany } = useWalletConnect({
+    account: selectedAcc,
+    chainId: network.chainId,
+    initialUri: wcUri,
+    allNetworks,
+    setNetwork
+  })
   
   return (<>
     <Prompt
@@ -42,6 +58,7 @@ function AppInner () {
         if (action === 'POP') return alert('onPopHistory')
         return true
     }}/>
+    
     <Switch>
       <Route path="/wallet">
         {AppHello()}
