@@ -12,6 +12,7 @@ import ToastProvider from './components/ToastProvider/ToastProvider'
 import useAccounts from './hooks/accounts'
 import useNetwork from './hooks/network'
 import useWalletConnect from './hooks/walletconnect'
+import useGnosisSafe from './hooks/useGnosisSafe'
 import { useToasts } from './hooks/toasts'
 import { useOneTimeQueryParam } from './hooks/oneTimeQueryParam'
 
@@ -51,6 +52,11 @@ function AppInner () {
     allNetworks,
     setNetwork
   })
+
+  const { requests: gnosisRequests, resolveMany: gnosisResolveMany, connect: gnosisConnect, disconnect: gnosisDisconnect } = useGnosisSafe({
+	  selectedAccount: selectedAcc,
+	  network: network
+	}, [selectedAcc, network])
   
   return (<>
     <Prompt
