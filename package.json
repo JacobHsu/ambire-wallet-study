@@ -8,6 +8,7 @@
     "@testing-library/react": "^12.0.0",
     "@testing-library/user-event": "^13.2.1",
     "@walletconnect/client": "^1.7.1",
+    "adex-protocol-eth": "git+https://git@github.com/AdExNetwork/adex-protocol-eth.git#4b4bfe380ae696b241513d8e1cdfb10cc12df332",
     "blockies-ts": "^1.0.0",
     "node-sass": "^7.0.1",
     "react": "^17.0.2",

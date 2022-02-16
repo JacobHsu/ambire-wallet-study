@@ -1,8 +1,11 @@
 import './SignMessage.scss'
 import { MdBrokenImage, MdCheck, MdClose } from 'react-icons/md'
+import { Wallet } from 'ethers'
 import { toUtf8String, keccak256, arrayify, isHexString } from 'ethers/lib/utils'
+import { signMsgHash } from 'adex-protocol-eth/js/Bundle'
 import * as blockies from 'blockies-ts';
 import { useToasts } from 'hooks/toasts'
+import { fetchPost } from 'lib/fetch'
 import { useState } from 'react'
 import { Button, Loading, TextInput } from 'components/common'
 
@@ -20,6 +23,72 @@ export default function SignMessage ({ toSign, resolve, account, connections, re
     <h3 className='error'>Invalid signing request: .txn has to be a hex string</h3>
     <Button className='reject' onClick={() => resolve({ message: 'signature denied' })}>Reject</Button>
   </div>)
+
+const handleSigningErr = e => {
+  console.error('Signing error', e)
+  if (e && e.message.includes('must provide an Ethereum address')) {
+    addToast(`Signing error: not connected with the correct address. Make sure you're connected with ${account.signer.address}.`, { error: true })
+  } else {
+    addToast(`Signing error: ${e.message || e}`, { error: true })
+  }
+}
+
+const approveQuickAcc = async confirmationCode => {
+  if (!relayerURL) {
+    addToast('Email/pass accounts not supported without a relayer connection', { error: true })
+    return
+  }
+  if (!signingState.passphrase) {
+    addToast('Password required to unlock the account', { error: true })
+    return
+  }
+  setLoading(true)
+  try {
+    const hash = keccak256(arrayify(toSign.txn))
+
+    const { signature, success, message, confCodeRequired } = await fetchPost(
+      // network doesn't matter when signing
+      `${relayerURL}/second-key/${account.id}/ethereum/sign`, {
+        toSign: hash,
+        code: confirmationCode
+      }
+    )
+    if (!success) {
+      if (!message) throw new Error(`Secondary key: no success but no error message`)
+      if (message.includes('invalid confirmation code')) {
+        addToast('Unable to sign: wrong confirmation code', { error: true })
+      }
+      addToast(`Second signature error: ${message}`, { error: true })
+      return
+    }
+    if (confCodeRequired) {
+      const confCode = prompt('A confirmation code has been sent to your email, it is valid for 3 minutes. Please enter it here:')
+      if (!confCode) throw new Error('You must enter a confirmation code')
+      await approveQuickAcc(confCode)
+      return
+    }
+
+    if (!account.primaryKeyBackup) throw new Error(`No key backup found: you need to import the account from JSON or login again.`)
+    const wallet = await Wallet.fromEncryptedJson(JSON.parse(account.primaryKeyBackup), signingState.passphrase)
+    const sig = await signMsgHash(wallet, account.id, account.signer, arrayify(hash), signature)
+    resolve({ success: true, result: sig })
+    addToast(`Successfully signed!`)
+  } catch(e) { handleSigningErr(e) }
+  setLoading(false)
+}
+
+const approve = async () => {
+  if (account.signer.quickAccManager) {
+    await approveQuickAcc()
+    return
+  }
+
+  setLoading(true)
+  try {
+    addToast(`Successfully signed!`)
+  } catch(e) { handleSigningErr(e) }
+  setLoading(false)
+}
 
   return (<div id='signMessage'>
     <div id='signingAccount' className='panel'>
@@ -78,10 +147,10 @@ export default function SignMessage ({ toSign, resolve, account, connections, re
                 className='reject'
                 onClick={() => resolve({ message: 'signature denied' })}
               >Reject</Button>
-              {/* <Button className='approve' onClick={approve} disabled={isLoading}>
+              <Button className='approve' onClick={approve} disabled={isLoading}>
                 {isLoading ? (<><Loading/>Signing...</>)
                 : (<><MdCheck/> Sign</>)}
-              </Button> */}
+              </Button>
             </div>
           </form>
         </div>
