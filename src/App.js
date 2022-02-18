@@ -10,6 +10,7 @@ import {
 } from 'react-router-dom'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import ToastProvider from './components/ToastProvider/ToastProvider'
+import SendTransaction from './components/SendTransaction/SendTransaction'
 import SignMessage from './components/SignMessage/SignMessage'
 import useAccounts from './hooks/accounts'
 import useNetwork from './hooks/network'
@@ -112,6 +113,21 @@ function AppInner () {
     return true
   }
 
+  // Keeping track of transactions
+  const [sentTxn, setSentTxn] = useState([])
+  const onBroadcastedTxn = hash => {
+    if (!hash) {
+      addToast('Transaction signed but not broadcasted to the network!', { timeout: 15000 })
+      return
+    }
+    setSentTxn(sentTxn => [...sentTxn, { confirmed: false, hash }])
+    addToast((
+      <span>Transaction signed and sent successfully!
+        &nbsp;Click to view on block explorer.
+      </span>
+    ), { url: network.explorerUrl+'/tx/'+hash, timeout: 15000 })
+  }
+
   const [cacheBreak, setCacheBreak] = useState(() => Date.now())
   useEffect(() => {
     if ((Date.now() - cacheBreak) > 5000) setCacheBreak(Date.now())
@@ -135,6 +151,21 @@ function AppInner () {
       relayerURL={relayerURL}
       resolve={outcome => resolveMany([everythingToSign[0].id], outcome)}
     ></SignMessage>)}
+
+    {sendTxnState.showing ? (
+      <SendTransaction
+          accounts={accounts}
+          selectedAcc={selectedAcc}
+          network={network}
+          requests={eligibleRequests}
+          resolveMany={resolveMany}
+          relayerURL={relayerURL}
+          onDismiss={() => setSendTxnState({ showing: false })}
+          replacementBundle={sendTxnState.replacementBundle}
+          onBroadcastedTxn={onBroadcastedTxn}
+      ></SendTransaction>
+      ) : (<></>)
+    }
     
     <Switch>
       <Route path="/wallet">
