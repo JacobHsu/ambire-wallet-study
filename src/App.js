@@ -9,6 +9,7 @@ import {
   Prompt
 } from 'react-router-dom'
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import Wallet from './components/Wallet/Wallet'
 import ToastProvider from './components/ToastProvider/ToastProvider'
 import SendTransaction from './components/SendTransaction/SendTransaction'
 import SignMessage from './components/SignMessage/SignMessage'
@@ -16,6 +17,7 @@ import useAccounts from './hooks/accounts'
 import useNetwork from './hooks/network'
 import useWalletConnect from './hooks/walletconnect'
 import useGnosisSafe from './hooks/useGnosisSafe'
+import { useAttentionGrabber, usePortfolio, useAddressBook, useRelayerData, usePrivateMode } from './hooks'
 import { useToasts } from './hooks/toasts'
 import { useOneTimeQueryParam } from './hooks/oneTimeQueryParam'
 
@@ -45,6 +47,7 @@ function AppHello() {
 function AppInner () {
   // basic stuff: currently selected account, all accounts, currently selected network
   const { accounts, selectedAcc, onSelectAcc, onAddAccount, onRemoveAccount } = useAccounts()
+  const addressBook = useAddressBook({ accounts })
   const { network, setNetwork, allNetworks } = useNetwork()
   const { addToast } = useToasts()
   const wcUri = useOneTimeQueryParam('uri')
@@ -66,6 +69,7 @@ function AppInner () {
   // Internal requests: eg from the Transfer page, Security page, etc. - requests originating in the wallet UI itself
   // unlike WalletConnect or SafeSDK requests, those do not need to be persisted
   const [internalRequests, setInternalRequests] = useState([])
+  const addRequest = req => setInternalRequests(reqs => [...reqs, req])
 
   // Merge all requests
   const requests = useMemo(
@@ -80,6 +84,13 @@ function AppInner () {
     setInternalRequests(reqs => reqs.filter(x => !ids.includes(x.id)))
   }
 
+  // Portfolio: this hook actively updates the balances/assets of the currently selected user
+  const portfolio = usePortfolio({
+    currentNetwork: network.id,
+    account: selectedAcc
+  })
+  const privateMode = usePrivateMode()
+
   // Show the send transaction full-screen modal if we have a new txn
   const eligibleRequests = useMemo(() => requests
   .filter(({ type, chainId, account }) =>
@@ -92,6 +103,7 @@ function AppInner () {
     () => setSendTxnState({ showing: !!eligibleRequests.length }),
     [eligibleRequests.length]
   )
+  const showSendTxns = bundle => setSendTxnState({ showing: true, replacementBundle: bundle })
   
   // Network shouldn't matter here
   const everythingToSign = useMemo(() => requests
@@ -134,6 +146,8 @@ function AppInner () {
     const intvl = setTimeout(() => setCacheBreak(Date.now()), 30000)
     return () => clearTimeout(intvl)
   }, [cacheBreak])
+  const rewardsUrl = (relayerURL && selectedAcc) ? `${relayerURL}/wallet-token/rewards/${selectedAcc}?cacheBreak=${cacheBreak}` : null
+  const rewardsData = useRelayerData(rewardsUrl)
 
   return (<>
     <Prompt
@@ -168,11 +182,42 @@ function AppInner () {
     }
     
     <Switch>
-      <Route path="/wallet">
+      <Route path="/add-account">
         {AppHello()}
       </Route>
+      <Route path="/wallet">
+        <Wallet
+          match={{ url: "/wallet" }}
+          accounts={accounts}
+          selectedAcc={selectedAcc}
+          addressBook={addressBook}
+          portfolio={portfolio}
+          onSelectAcc={onSelectAcc}
+          onRemoveAccount={onRemoveAccount}
+          allNetworks={allNetworks}
+          network={network}
+          setNetwork={setNetwork}
+          addRequest={addRequest}
+          connections={connections}
+          // needed by the top bar to disconnect/connect dapps
+          connect={connect}
+          disconnect={disconnect}
+          // needed by the gnosis plugins
+          gnosisConnect={gnosisConnect}
+          gnosisDisconnect={gnosisDisconnect}
+          // required for the security and transactions pages
+          relayerURL={relayerURL}
+          // required by the transactions page
+          eligibleRequests={eligibleRequests}
+          showSendTxns={showSendTxns}
+          onAddAccount={onAddAccount}
+          rewardsData={rewardsData}
+          privateMode={privateMode}
+        >
+        </Wallet>
+      </Route>
       <Route path="/">
-        <Redirect to="/wallet"/>
+        <Redirect to={selectedAcc ? "/wallet" : "/add-account" }/>
       </Route>
     </Switch>
     </>)
