@@ -5,7 +5,7 @@ import { NavLink } from "react-router-dom";
 import { MdOutlineArrowForward, MdOutlineClose, MdOutlineMenu, MdRemoveRedEye, MdVisibilityOff } from "react-icons/md";
 import { Select } from "components/common";
 // import Accounts from "./Accounts/Accounts";
-// import DApps from "./DApps/DApps";
+import DApps from "./DApps/DApps";
 import * as blockies from 'blockies-ts';
 import Links from "./Links/Links";
 // import Rewards from "./Rewards/Rewards";
@@ -56,9 +56,9 @@ const TopBar = ({
           account={account}
           hidePrivateValue={hidePrivateValue}
         /> */}
-        {/* {isPrivateMode ? <MdVisibilityOff cursor="pointer" size={28} onClick={togglePrivateMode} /> : <MdRemoveRedEye cursor="pointer" size={28} onClick={togglePrivateMode} />} */}
-        {/* <DApps connections={connections} connect={connect} disconnect={disconnect}/>
-        <Accounts accounts={accounts} selectedAddress={selectedAcc} onSelectAcc={onSelectAcc} onRemoveAccount={onRemoveAccount} hidePrivateValue={hidePrivateValue}/> */}
+        {isPrivateMode ? <MdVisibilityOff cursor="pointer" size={28} onClick={togglePrivateMode} /> : <MdRemoveRedEye cursor="pointer" size={28} onClick={togglePrivateMode} />}
+        <DApps connections={connections} connect={connect} disconnect={disconnect}/>
+        {/* <Accounts accounts={accounts} selectedAddress={selectedAcc} onSelectAcc={onSelectAcc} onRemoveAccount={onRemoveAccount} hidePrivateValue={hidePrivateValue}/> */}
         <Select defaultValue={network.id} items={networksItems} onChange={value => setNetwork(value)}/>
         <Links/>
       </div>
