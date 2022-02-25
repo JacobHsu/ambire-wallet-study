@@ -4,6 +4,7 @@ import { Switch, Route, Redirect, useLocation  } from "react-router-dom"
 import TopBar from "./TopBar/TopBar"
 import SideBar from "./SideBar/SideBar"
 import Deposit from "./Deposit/Deposit"
+import Swap from "./Swap/Swap"
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 export default function Wallet(props) {
@@ -13,6 +14,15 @@ export default function Wallet(props) {
     {
       path: '/deposit',
       component: <Deposit selectedAcc={props.selectedAcc} selectedNetwork={props.network.id} />
+    },
+    {
+      path: '/swap',
+      component: <Swap
+        gnosisConnect={props.gnosisConnect}
+        gnosisDisconnect={props.gnosisDisconnect}
+        selectedAcc={props.selectedAcc}
+        network={props.network}
+      />
     },
   ]
 

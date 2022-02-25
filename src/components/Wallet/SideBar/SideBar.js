@@ -61,11 +61,11 @@ const SideBar = ({ match, portfolio, hidePrivateValue }) => {
               <GiReceiveMoney/>Deposit
           </div>
         </NavLink>
-        <NavLink to={match.url + "/transfer"} activeClassName="selected">
+        {/* <NavLink to={match.url + "/transfer"} activeClassName="selected">
           <div className="item">
               <BiTransfer/>Transfer
           </div>
-        </NavLink>
+        </NavLink> */}
         <NavLink to={match.url + "/swap"} activeClassName="selected">
           <div className="item">
               <BsCurrencyExchange/>Swap
